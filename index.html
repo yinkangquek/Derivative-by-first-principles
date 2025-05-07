@@ -16,10 +16,13 @@
     label {
       margin-right: 10px;
     }
+    input, select {
+      margin: 0 5px;
+    }
   </style>
 </head>
 <body>
-  <h2>Derivatives by First Principles</h2>
+  <h2>Derivatives by First Principles (Interactive)</h2>
   <div id="controls">
     <label>Function:
       <select id="functionSelect">
@@ -30,8 +33,9 @@
     </label>
     <label>x = <input type="number" id="xVal" value="1" step="0.1" /></label>
     <label>h = <input type="number" id="hVal" value="1" step="0.01" /></label>
-    <button onclick="update()">Update</button>
-    <button onclick="animate()">Play</button>
+    <button id="updateBtn">Update</button>
+    <button id="playBtn">Play</button>
+    <button id="stopBtn">Stop</button>
   </div>
   <div id="output" style="margin-bottom:10px;"></div>
   <div id="plot" style="width:100%; max-width:800px; height:500px; margin:auto;"></div>
@@ -40,19 +44,22 @@
     let func = x => x ** 2;
     let x = 1;
     let h = 1;
-    let animationFrame;
+    let animationId = null;
+
+    const xInput = document.getElementById("xVal");
+    const hInput = document.getElementById("hVal");
+    const functionSelect = document.getElementById("functionSelect");
+    const outputDiv = document.getElementById("output");
 
     function evaluate(fnStr) {
       return new Function("x", "return " + fnStr + ";");
     }
 
-    function update() {
-      cancelAnimationFrame(animationFrame);
-
-      const fnStr = document.getElementById("functionSelect").value;
+    function plot() {
+      const fnStr = functionSelect.value;
       func = evaluate(fnStr);
-      x = parseFloat(document.getElementById("xVal").value);
-      h = parseFloat(document.getElementById("hVal").value);
+      x = parseFloat(xInput.value);
+      h = parseFloat(hInput.value);
 
       const x1 = x;
       const x2 = x + h;
@@ -60,46 +67,43 @@
       const y2 = func(x2);
       const slope = (y2 - y1) / h;
 
-      document.getElementById("output").innerHTML =
-        `Difference Quotient: <strong>(${y2.toFixed(4)} − ${y1.toFixed(4)}) / ${h.toFixed(4)} = ${slope.toFixed(4)}</strong>`;
+      outputDiv.innerHTML = `Difference Quotient: <strong>(${y2.toFixed(4)} − ${y1.toFixed(4)}) / ${h.toFixed(4)} = ${slope.toFixed(4)}</strong>`;
 
-      const xData = [], yData = [];
-      for (let i = x - 3; i <= x + 3; i += 0.1) {
-        xData.push(i);
-        yData.push(func(i));
+      const curveX = [], curveY = [];
+      for (let i = x - 3; i <= x + 3; i += 0.05) {
+        curveX.push(i);
+        curveY.push(func(i));
       }
-
-      const secantY = [y1, y2];
-      const secantX = [x1, x2];
 
       const data = [
         {
-          x: xData,
-          y: yData,
+          x: curveX,
+          y: curveY,
           mode: 'lines',
           name: 'f(x)',
           line: { color: 'blue' }
         },
         {
           x: [x1, x2],
-          y: secantY,
+          y: [y1, y2],
           mode: 'lines+markers',
           name: 'Secant Line',
-          line: { dash: 'dot', color: 'red' }
+          line: { color: 'red', dash: 'dot' },
+          marker: { size: 6 }
         },
         {
           x: [x1],
           y: [y1],
           mode: 'markers',
-          name: 'Point x',
-          marker: { size: 8, color: 'green' }
+          name: 'f(x)',
+          marker: { color: 'green', size: 8 }
         },
         {
           x: [x2],
           y: [y2],
           mode: 'markers',
-          name: 'Point x + h',
-          marker: { size: 8, color: 'orange' }
+          name: 'f(x+h)',
+          marker: { color: 'orange', size: 8 }
         }
       ];
 
@@ -111,22 +115,39 @@
     }
 
     function animate() {
-      let currentH = parseFloat(document.getElementById("hVal").value);
+      stop(); // stop previous animation if any
+
+      let currentH = parseFloat(hInput.value);
       function step() {
-        if (currentH <= 0.01) {
-          cancelAnimationFrame(animationFrame);
+        if (currentH <= 0.0001) {
+          stop();
           return;
         }
-        document.getElementById("hVal").value = currentH.toFixed(4);
-        update();
+        hInput.value = currentH.toFixed(5);
+        plot();
         currentH *= 0.9;
-        animationFrame = requestAnimationFrame(step);
+        animationId = requestAnimationFrame(step);
       }
       step();
     }
 
-    // Initialize on load
-    window.onload = update;
+    function stop() {
+      if (animationId !== null) {
+        cancelAnimationFrame(animationId);
+        animationId = null;
+      }
+    }
+
+    // Event listeners
+    document.getElementById("updateBtn").addEventListener("click", () => {
+      stop();
+      plot();
+    });
+    document.getElementById("playBtn").addEventListener("click", animate);
+    document.getElementById("stopBtn").addEventListener("click", stop);
+
+    // Initialize
+    window.onload = plot;
   </script>
 </body>
 </html>
