@@ -1,0 +1,132 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Derivative by First Principles</title>
+  <script src="https://cdn.plot.ly/plotly-latest.min.js"></script>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      padding: 20px;
+      text-align: center;
+    }
+    #controls {
+      margin: 15px 0;
+    }
+    label {
+      margin-right: 10px;
+    }
+  </style>
+</head>
+<body>
+  <h2>Derivatives by First Principles</h2>
+  <div id="controls">
+    <label>Function:
+      <select id="functionSelect">
+        <option value="x**2">f(x) = x²</option>
+        <option value="Math.sin(x)">f(x) = sin(x)</option>
+        <option value="Math.exp(x)">f(x) = eˣ</option>
+      </select>
+    </label>
+    <label>x = <input type="number" id="xVal" value="1" step="0.1" /></label>
+    <label>h = <input type="number" id="hVal" value="1" step="0.01" /></label>
+    <button onclick="update()">Update</button>
+    <button onclick="animate()">Play</button>
+  </div>
+  <div id="output" style="margin-bottom:10px;"></div>
+  <div id="plot" style="width:100%; max-width:800px; height:500px; margin:auto;"></div>
+
+  <script>
+    let func = x => x ** 2;
+    let x = 1;
+    let h = 1;
+    let animationFrame;
+
+    function evaluate(fnStr) {
+      return new Function("x", "return " + fnStr + ";");
+    }
+
+    function update() {
+      cancelAnimationFrame(animationFrame);
+
+      const fnStr = document.getElementById("functionSelect").value;
+      func = evaluate(fnStr);
+      x = parseFloat(document.getElementById("xVal").value);
+      h = parseFloat(document.getElementById("hVal").value);
+
+      const x1 = x;
+      const x2 = x + h;
+      const y1 = func(x1);
+      const y2 = func(x2);
+      const slope = (y2 - y1) / h;
+
+      document.getElementById("output").innerHTML =
+        `Difference Quotient: <strong>(${y2.toFixed(4)} − ${y1.toFixed(4)}) / ${h.toFixed(4)} = ${slope.toFixed(4)}</strong>`;
+
+      const xData = [], yData = [];
+      for (let i = x - 3; i <= x + 3; i += 0.1) {
+        xData.push(i);
+        yData.push(func(i));
+      }
+
+      const secantY = [y1, y2];
+      const secantX = [x1, x2];
+
+      const data = [
+        {
+          x: xData,
+          y: yData,
+          mode: 'lines',
+          name: 'f(x)',
+          line: { color: 'blue' }
+        },
+        {
+          x: [x1, x2],
+          y: secantY,
+          mode: 'lines+markers',
+          name: 'Secant Line',
+          line: { dash: 'dot', color: 'red' }
+        },
+        {
+          x: [x1],
+          y: [y1],
+          mode: 'markers',
+          name: 'Point x',
+          marker: { size: 8, color: 'green' }
+        },
+        {
+          x: [x2],
+          y: [y2],
+          mode: 'markers',
+          name: 'Point x + h',
+          marker: { size: 8, color: 'orange' }
+        }
+      ];
+
+      Plotly.newPlot("plot", data, {
+        margin: { t: 20 },
+        xaxis: { title: 'x' },
+        yaxis: { title: 'f(x)' }
+      });
+    }
+
+    function animate() {
+      let currentH = parseFloat(document.getElementById("hVal").value);
+      function step() {
+        if (currentH <= 0.01) {
+          cancelAnimationFrame(animationFrame);
+          return;
+        }
+        document.getElementById("hVal").value = currentH.toFixed(4);
+        update();
+        currentH *= 0.9;
+        animationFrame = requestAnimationFrame(step);
+      }
+      step();
+    }
+
+    // Initialize on load
+    window.onload = update;
+  </script>
+</body>
+</html>
